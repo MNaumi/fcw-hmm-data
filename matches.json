@@ -1,0 +1,20 @@
+[
+  { "id": "A1000001-0000-0000-0000-000000000001", "opponent": "Yverdon Sport", "date": "2026-07-24T20:15:00+02:00", "isHome": true, "competition": "Challenge League" },
+  { "id": "A1000002-0000-0000-0000-000000000002", "opponent": "SC Kriens", "date": "2026-07-31T20:15:00+02:00", "isHome": false, "competition": "Challenge League" },
+  { "id": "A1000003-0000-0000-0000-000000000003", "opponent": "FC Wil", "date": "2026-08-07T19:30:00+02:00", "isHome": true, "competition": "Challenge League" },
+  { "id": "A1000004-0000-0000-0000-000000000004", "opponent": "Rapperswil-Jona", "date": "2026-08-21T20:15:00+02:00", "isHome": false, "competition": "Challenge League" },
+  { "id": "A1000005-0000-0000-0000-000000000005", "opponent": "Stade Lausanne-Ouchy", "date": "2026-08-28T19:30:00+02:00", "isHome": true, "competition": "Challenge League" },
+  { "id": "A1000006-0000-0000-0000-000000000006", "opponent": "Stade Nyonnais", "date": "2026-09-01T19:30:00+02:00", "isHome": false, "competition": "Challenge League" },
+  { "id": "A1000007-0000-0000-0000-000000000007", "opponent": "Neuchâtel Xamax", "date": "2026-09-04T20:15:00+02:00", "isHome": true, "competition": "Challenge League" },
+  { "id": "A1000008-0000-0000-0000-000000000008", "opponent": "Étoile Carouge", "date": "2026-09-11T20:15:00+02:00", "isHome": false, "competition": "Challenge League" },
+  { "id": "A1000009-0000-0000-0000-000000000009", "opponent": "FC Aarau", "date": "2026-09-18T20:15:00+02:00", "isHome": true, "competition": "Challenge League" },
+  { "id": "A1000010-0000-0000-0000-000000000010", "opponent": "Neuchâtel Xamax", "date": "2026-10-10T12:00:00+02:00", "isHome": false, "competition": "Challenge League", "timeTBD": true },
+  { "id": "A1000011-0000-0000-0000-000000000011", "opponent": "Stade Nyonnais", "date": "2026-10-24T12:00:00+02:00", "isHome": true, "competition": "Challenge League", "timeTBD": true },
+  { "id": "A1000012-0000-0000-0000-000000000012", "opponent": "FC Wil", "date": "2026-10-31T12:00:00+01:00", "isHome": false, "competition": "Challenge League", "timeTBD": true },
+  { "id": "A1000013-0000-0000-0000-000000000013", "opponent": "Étoile Carouge", "date": "2026-11-07T12:00:00+01:00", "isHome": true, "competition": "Challenge League", "timeTBD": true },
+  { "id": "A1000014-0000-0000-0000-000000000014", "opponent": "Yverdon Sport", "date": "2026-11-21T12:00:00+01:00", "isHome": false, "competition": "Challenge League", "timeTBD": true },
+  { "id": "A1000015-0000-0000-0000-000000000015", "opponent": "Rapperswil-Jona", "date": "2026-11-28T12:00:00+01:00", "isHome": true, "competition": "Challenge League", "timeTBD": true },
+  { "id": "A1000016-0000-0000-0000-000000000016", "opponent": "Stade Lausanne-Ouchy", "date": "2026-12-05T12:00:00+01:00", "isHome": false, "competition": "Challenge League", "timeTBD": true },
+  { "id": "A1000017-0000-0000-0000-000000000017", "opponent": "SC Kriens", "date": "2026-12-12T12:00:00+01:00", "isHome": true, "competition": "Challenge League", "timeTBD": true },
+  { "id": "A1000018-0000-0000-0000-000000000018", "opponent": "FC Aarau", "date": "2026-12-19T12:00:00+01:00", "isHome": false, "competition": "Challenge League", "timeTBD": true }
+]
