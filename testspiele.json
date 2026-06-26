@@ -1,0 +1,44 @@
+[
+  {
+    "id": "A5A275E6-C94F-4518-A25D-02868AAF7873",
+    "opponent": "FC Pfäffikon ZH",
+    "date": "2026-06-27T15:30:00+02:00",
+    "isHome": false,
+    "competition": "Testspiel"
+  },
+  {
+    "id": "E96B3424-0B70-478F-87CF-C73029A0F9D3",
+    "opponent": "FC St. Gallen",
+    "date": "2026-07-01T18:00:00+02:00",
+    "isHome": true,
+    "competition": "Testspiel"
+  },
+  {
+    "id": "1BEC4636-DF78-43A4-9DF6-37B42056CA64",
+    "opponent": "FC Luzern",
+    "date": "2026-07-04T16:00:00+02:00",
+    "isHome": false,
+    "competition": "Testspiel"
+  },
+  {
+    "id": "FF204185-8803-484B-A27B-4F9C22527736",
+    "opponent": "FC Basel",
+    "date": "2026-07-11T13:00:00+02:00",
+    "isHome": false,
+    "competition": "Testspiel"
+  },
+  {
+    "id": "205E891A-1B9F-4CE3-8D41-F78788CF95EF",
+    "opponent": "SC Brühl SG",
+    "date": "2026-07-14T18:30:00+02:00",
+    "isHome": true,
+    "competition": "Testspiel"
+  },
+  {
+    "id": "C6689A7E-F3E3-42D9-BF73-925C79A52CA7",
+    "opponent": "FC Union Berlin",
+    "date": "2026-07-17T19:00:00+02:00",
+    "isHome": true,
+    "competition": "Testspiel"
+  }
+]
