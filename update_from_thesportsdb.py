@@ -151,6 +151,36 @@ def merge(existing, incoming):
     return merged, changes
 
 
+def compute_standings(events):
+    """Tabelle (App-Teamname -> Rang) aus beendeten Ligaspielen.
+
+    Der Gratis-Key liefert lookuptable nur gekappt (Top 5), deshalb rechnen
+    wir selbst: 3 Punkte/Sieg, Tiebreak Tordifferenz, dann Tore, dann Name.
+    Leer, solange noch kein Ligaspiel beendet ist.
+    """
+    stats = {}  # Name -> [Punkte, Tordifferenz, Tore]
+    for e in events:
+        if e.get("strLeague") != "Swiss Challenge League":
+            continue
+        if e.get("strStatus") not in FINAL_STATUSES:
+            continue
+        if e.get("intHomeScore") is None or e.get("intAwayScore") is None:
+            continue
+        hs, as_ = int(e["intHomeScore"]), int(e["intAwayScore"])
+        home, away = map_team(e["strHomeTeam"]), map_team(e["strAwayTeam"])
+        for team in (home, away):
+            stats.setdefault(team, [0, 0, 0])
+        stats[home][0] += 3 if hs > as_ else 1 if hs == as_ else 0
+        stats[away][0] += 3 if as_ > hs else 1 if hs == as_ else 0
+        stats[home][1] += hs - as_
+        stats[away][1] += as_ - hs
+        stats[home][2] += hs
+        stats[away][2] += as_
+    ranked = sorted(stats.items(),
+                    key=lambda kv: (-kv[1][0], -kv[1][1], -kv[1][2], kv[0]))
+    return {name: rank for rank, (name, _) in enumerate(ranked, start=1)}
+
+
 def season_for(year, month):
     """Saison-String für TheSportsDB; Saisonwechsel im Juli."""
     return f"{year}-{year + 1}" if month >= 7 else f"{year - 1}-{year}"
@@ -188,10 +218,25 @@ def update_file(path, incoming, dry_run):
     return bool(changes)
 
 
+def update_standings(path, table, dry_run):
+    """Schreibt die Tabelle als Snapshot; leere Tabelle lässt die Datei unangetastet."""
+    if not table:
+        print("Tabelle: keine beendeten Ligaspiele – unverändert.")
+        return False
+    old = json.loads(path.read_text()) if path.exists() else None
+    if old == table:
+        return False
+    print(f"standings.json: Tabelle aktualisiert ({len(table)} Teams)")
+    if not dry_run:
+        path.write_text(json.dumps(table, ensure_ascii=False, indent=2) + "\n")
+    return True
+
+
 def main():
     dry_run = "--dry-run" in sys.argv
     root = Path(__file__).parent
-    matches = [m for m in map(event_to_match, fetch_events()) if m]
+    events = fetch_events()
+    matches = [m for m in map(event_to_match, events) if m]
     # Duplikate über die drei Endpunkte hinweg zusammenführen
     matches, _ = merge([], matches)
     for m in matches:
@@ -202,6 +247,7 @@ def main():
 
     changed = update_file(root / "matches.json", league, dry_run)
     changed |= update_file(root / "testspiele.json", tests, dry_run)
+    changed |= update_standings(root / "standings.json", compute_standings(events), dry_run)
     if not changed:
         print("Keine Änderungen.")
     elif dry_run:

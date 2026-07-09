@@ -209,3 +209,52 @@ class TestSaison(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStandings(unittest.TestCase):
+    """Tabellenberechnung aus Liga-Resultaten."""
+
+    def liga_event(self, home, away, hs, as_, status="FT"):
+        return tsdb_event(
+            strLeague="Swiss Challenge League",
+            strHomeTeam=home, strAwayTeam=away,
+            dateEvent="2026-07-24", strTime="18:15:00",
+            strStatus=status, intHomeScore=hs, intAwayScore=as_)
+
+    def test_punkte_und_rangfolge(self):
+        from update_from_thesportsdb import compute_standings
+        events = [
+            self.liga_event("Winterthur", "Aarau", "2", "0"),   # Winti 3 Pkt
+            self.liga_event("Wil", "Aarau", "1", "1"),          # Wil 1, Aarau 1
+        ]
+        table = compute_standings(events)
+        self.assertEqual(table["FC Winterthur"], 1)
+        self.assertEqual(table["FC Wil"], 2)      # 1 Pkt, TD 0
+        self.assertEqual(table["FC Aarau"], 3)    # 1 Pkt, TD -2
+
+    def test_tordifferenz_und_tore_als_tiebreak(self):
+        from update_from_thesportsdb import compute_standings
+        events = [
+            self.liga_event("Winterthur", "Kriens", "3", "0"),
+            self.liga_event("Aarau", "Wil", "1", "0"),
+        ]
+        table = compute_standings(events)
+        # Beide 3 Pkt: Winterthur TD +3 vor Aarau TD +1
+        self.assertEqual(table["FC Winterthur"], 1)
+        self.assertEqual(table["FC Aarau"], 2)
+
+    def test_nur_beendete_ligaspiele_zaehlen(self):
+        from update_from_thesportsdb import compute_standings
+        events = [
+            self.liga_event("Winterthur", "Aarau", "1", "0", status="2H"),
+            self.liga_event("Winterthur", "Aarau", None, None, status="NS"),
+            tsdb_event(strLeague="Swiss Cup", strHomeTeam="Winterthur",
+                       strAwayTeam="Aarau", strStatus="FT",
+                       intHomeScore="5", intAwayScore="0"),
+            tsdb_event(strStatus="FT", intHomeScore="1", intAwayScore="0"),  # Friendly
+        ]
+        self.assertEqual(compute_standings(events), {})
+
+    def test_leere_saison_ergibt_leere_tabelle(self):
+        from update_from_thesportsdb import compute_standings
+        self.assertEqual(compute_standings([]), {})
