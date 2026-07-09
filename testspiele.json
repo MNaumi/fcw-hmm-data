@@ -11,7 +11,9 @@
     "opponent": "FC St. Gallen",
     "date": "2026-07-01T18:00:00+02:00",
     "isHome": true,
-    "competition": "Testspiel"
+    "competition": "Testspiel",
+    "homeScore": 0,
+    "awayScore": 1
   },
   {
     "id": "1BEC4636-DF78-43A4-9DF6-37B42056CA64",

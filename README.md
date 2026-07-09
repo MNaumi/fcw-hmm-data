@@ -1,7 +1,23 @@
 # FCW HMM – Daten
 
 Diese Daten versorgen die **HMM-App**. `matches.json` (Spielplan) wird
-**automatisch** aus dem offiziellen SFL-PDF erzeugt.
+**automatisch** aus dem offiziellen SFL-PDF erzeugt und zusammen mit
+`testspiele.json` **zweimal täglich** von TheSportsDB angereichert.
+
+## 🤖 Vollautomatik (läuft ohne Zutun)
+
+Die Action `update-from-thesportsdb.yml` läuft täglich um 05:00 und 22:30 UTC
+und gleicht mit [TheSportsDB](https://www.thesportsdb.com) ab:
+
+- **Anstoßzeiten**: Sobald die SFL ein „Wochenende offen"-Spiel (timeTBD)
+  terminiert, wird die Zeit automatisch eingetragen.
+- **Resultate**: Endstände abgeschlossener Spiele landen als
+  `homeScore`/`awayScore` in den JSON-Dateien.
+- **Neue Spiele**: Noch nicht erfasste Testspiele und Cup-Partien werden ergänzt.
+
+Dabei wird **nie etwas gelöscht** – bestehende Einträge, IDs und manuelle
+Korrekturen bleiben erhalten. Das SFL-PDF bleibt die maßgebliche Quelle für
+den Liga-Spielplan; TheSportsDB ergänzt nur.
 
 ## 🔄 Spielplan aktualisieren – Schritt für Schritt
 
@@ -21,5 +37,8 @@ Diese Daten versorgen die **HMM-App**. `matches.json` (Spielplan) wird
 ## Dateien
 - `schedule.pdf` – offizielles SFL-PDF (Quelle)
 - `parse_schedule.py` – Parser (PDF → matches.json)
-- `.github/workflows/update-schedule.yml` – die Automatik (GitHub Action)
-- `matches.json` – wird erzeugt und von der App geladen
+- `update_from_thesportsdb.py` – Anreicherung (Zeiten, Resultate, neue Spiele)
+- `test_update_from_thesportsdb.py` – Tests (`python3 -m unittest`)
+- `.github/workflows/update-schedule.yml` – Automatik PDF → matches.json
+- `.github/workflows/update-from-thesportsdb.yml` – tägliche Anreicherung
+- `matches.json` / `testspiele.json` – werden von der App geladen
