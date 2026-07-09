@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 TEAM_TSDB = "Winterthur"          # Teamname bei TheSportsDB
 TEAM_ID = "138984"                # FC Winterthur
 LEAGUE_ID = "4713"                # Swiss Challenge League
+CUP_LEAGUE_ID = "5489"            # Swiss Cup
 API = "https://www.thesportsdb.com/api/v1/json/123"
 ZURICH = ZoneInfo("Europe/Zurich")
 
@@ -173,6 +174,7 @@ def fetch_events():
     events += _get(f"{API}/eventsnext.php?id={TEAM_ID}").get("events") or []
     events += _get(f"{API}/eventslast.php?id={TEAM_ID}").get("results") or []
     events += _get(f"{API}/eventsseason.php?id={LEAGUE_ID}&s={season}").get("events") or []
+    events += _get(f"{API}/eventsseason.php?id={CUP_LEAGUE_ID}&s={season}").get("events") or []
     return events
 
 

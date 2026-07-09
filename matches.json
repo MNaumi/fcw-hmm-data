@@ -21,6 +21,13 @@
     "competition": "Challenge League"
   },
   {
+    "id": "EC49BCC2-F729-5C04-9CB5-554650AAB641",
+    "opponent": "Zürich City",
+    "date": "2026-08-14T18:00:00+02:00",
+    "isHome": false,
+    "competition": "Schweizer Cup"
+  },
+  {
     "id": "A0000004-0000-0000-0000-000000000004",
     "opponent": "Rapperswil-Jona",
     "date": "2026-08-21T20:15:00+02:00",
