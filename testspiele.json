@@ -30,6 +30,13 @@
     "competition": "Testspiel"
   },
   {
+    "id": "11BA408A-1BCD-559A-AF0C-431720964F23",
+    "opponent": "Brühl",
+    "date": "2026-07-14T18:00:00+02:00",
+    "isHome": true,
+    "competition": "Testspiel"
+  },
+  {
     "id": "205E891A-1B9F-4CE3-8D41-F78788CF95EF",
     "opponent": "SC Brühl SG",
     "date": "2026-07-14T18:30:00+02:00",
