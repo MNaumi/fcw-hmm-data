@@ -34,7 +34,9 @@
     "opponent": "Brühl",
     "date": "2026-07-14T18:00:00+02:00",
     "isHome": true,
-    "competition": "Testspiel"
+    "competition": "Testspiel",
+    "homeScore": 1,
+    "awayScore": 1
   },
   {
     "id": "205E891A-1B9F-4CE3-8D41-F78788CF95EF",
