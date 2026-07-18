@@ -50,6 +50,8 @@
     "opponent": "FC Union Berlin",
     "date": "2026-07-17T19:00:00+02:00",
     "isHome": true,
-    "competition": "Testspiel"
+    "competition": "Testspiel",
+    "homeScore": 1,
+    "awayScore": 1
   }
 ]
