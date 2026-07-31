@@ -13,7 +13,9 @@
     "opponent": "SC Kriens",
     "date": "2026-07-31T20:15:00+02:00",
     "isHome": false,
-    "competition": "Challenge League"
+    "competition": "Challenge League",
+    "homeScore": 2,
+    "awayScore": 0
   },
   {
     "id": "A0000003-0000-0000-0000-000000000003",
