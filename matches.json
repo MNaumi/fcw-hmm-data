@@ -22,7 +22,9 @@
     "opponent": "FC Wil",
     "date": "2026-08-07T19:30:00+02:00",
     "isHome": true,
-    "competition": "Challenge League"
+    "competition": "Challenge League",
+    "homeScore": 5,
+    "awayScore": 0
   },
   {
     "id": "EC49BCC2-F729-5C04-9CB5-554650AAB641",
