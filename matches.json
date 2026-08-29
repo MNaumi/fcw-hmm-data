@@ -49,7 +49,9 @@
     "opponent": "Stade Lausanne-Ouchy",
     "date": "2026-08-28T19:30:00+02:00",
     "isHome": true,
-    "competition": "Challenge League"
+    "competition": "Challenge League",
+    "homeScore": 1,
+    "awayScore": 1
   },
   {
     "id": "A0000006-0000-0000-0000-000000000006",
