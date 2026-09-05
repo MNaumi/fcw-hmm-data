@@ -65,7 +65,9 @@
     "opponent": "Neuchâtel Xamax",
     "date": "2026-09-04T20:15:00+02:00",
     "isHome": true,
-    "competition": "Challenge League"
+    "competition": "Challenge League",
+    "homeScore": 4,
+    "awayScore": 0
   },
   {
     "id": "A0000008-0000-0000-0000-000000000008",
