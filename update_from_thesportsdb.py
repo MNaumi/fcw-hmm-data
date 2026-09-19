@@ -11,6 +11,7 @@ maßgebliche Quelle für den Liga-Spielplan.
 Aufruf: python3 update_from_thesportsdb.py [--dry-run]
 """
 import json
+import os
 import sys
 import unicodedata
 import urllib.request
@@ -125,6 +126,12 @@ def _new_id(match):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, key)).upper()
 
 
+def _fixture_key(m):
+    """Eindeutige Partie über die Saison: Gegner + Wettbewerb + Heim/Auswärts.
+    (Jede Paarung findet pro Heimrecht genau einmal statt.)"""
+    return (_norm(m["opponent"]), m.get("competition", ""), bool(m.get("isHome")))
+
+
 def merge(existing, incoming):
     """Ergänzt existing um incoming. Löscht nie. -> (merged, Änderungsliste)"""
     merged = [dict(e) for e in existing]
@@ -134,6 +141,15 @@ def merge(existing, incoming):
             continue
         target = _find(merged, inc)
         if target is None:
+            # Dubletten-Schutz: Gibt es dieselbe Partie bereits mit FIXEM Termin
+            # (ohne timeTBD), aber >3 Tage entfernt, ist das kein neues Spiel,
+            # sondern eine Terminabweichung -> nicht anlegen (detect_reschedules
+            # meldet sie separat), sonst entstünde ein Geister-Duplikat.
+            fk = _fixture_key(inc)
+            if any(not e.get("timeTBD") and _fixture_key(e) == fk for e in merged):
+                changes.append(f"nicht angelegt (Terminabweichung, siehe Hinweis): "
+                               f"{inc['date'][:10]} {inc['opponent']}")
+                continue
             entry = {"id": _new_id(inc), **inc}
             merged.append(entry)
             changes.append(f"neu: {entry['date'][:10]} {entry['opponent']} ({entry['competition']})")
@@ -149,6 +165,64 @@ def merge(existing, incoming):
             changes.append(f"Resultat: {target['opponent']} {inc['homeScore']}:{inc['awayScore']}")
     merged.sort(key=lambda m: datetime.fromisoformat(m["date"]))
     return merged, changes
+
+
+RESCHEDULE_TOLERANCE_DAYS = 3
+
+
+def detect_reschedules(existing, incoming):
+    """Findet fest terminierte Spiele (ohne timeTBD), für die eine Quelle einen
+    um mehr als RESCHEDULE_TOLERANCE_DAYS abweichenden Termin meldet.
+
+    Ändert NICHTS am Spielplan (die Quelle ist bekanntlich fehleranfällig) und
+    gibt nur Verdachtsfälle zur manuellen Prüfung zurück. Kleine Abweichungen
+    (<=3 Tage) gelten als Quellen-Rauschen und werden ignoriert."""
+    firm = {}
+    for e in existing:
+        if e.get("timeTBD"):
+            continue
+        firm[_fixture_key(e)] = e
+    seen, warnings = set(), []
+    for inc in incoming:
+        key = _fixture_key(inc)
+        cur = firm.get(key)
+        if cur is None or key in seen:
+            continue
+        if abs((_day(inc["date"]) - _day(cur["date"])).days) > RESCHEDULE_TOLERANCE_DAYS:
+            seen.add(key)
+            warnings.append({
+                "opponent": cur["opponent"],
+                "competition": cur["competition"],
+                "current": cur["date"][:10],
+                "source": inc["date"][:10],
+            })
+    return warnings
+
+
+def format_hinweis(warnings):
+    """(Commit-Nachricht, Dateiinhalt) für die Verdachtsfälle. Leer -> ('', '')."""
+    if not warnings:
+        return "", ""
+    parts = [f"{w['opponent']} {w['current']}→{w['source']}" for w in warnings]
+    summary = (f"⚠️ Mögliche Terminverschiebung ({len(warnings)}): "
+               + "; ".join(parts) + " – bitte prüfen")
+    detail = "\n".join(
+        f"- {w['competition']}: {w['opponent']} steht in der App am {w['current']}, "
+        f"die Datenquelle meldet {w['source']}." for w in warnings)
+    return summary, summary + "\n\n" + detail + "\n"
+
+
+def update_hinweis(path, warnings, dry_run):
+    """Schreibt hinweis.txt (Verdachtsfälle) bzw. leert sie, wenn keine mehr da
+    sind. Rückgabe: die Commit-Zeile (leer, wenn kein Hinweis)."""
+    commit_line, content = format_hinweis(warnings)
+    old = path.read_text() if path.exists() else ""
+    if content != old:
+        print(f"hinweis.txt: {'aktualisiert' if content else 'geleert'} "
+              f"({len(warnings)} Verdachtsfälle)")
+        if not dry_run:
+            path.write_text(content)
+    return commit_line
 
 
 def compute_standings(events):
@@ -260,6 +334,7 @@ def main():
     dry_run = "--dry-run" in sys.argv
     root = Path(__file__).parent
     events = fetch_events()
+    league_events = fetch_league_events()   # volle Liga (eventsround) für Tabelle + Verschiebungs-Check
     matches = [m for m in map(event_to_match, events) if m]
     # Duplikate über die drei Endpunkte hinweg zusammenführen
     matches, _ = merge([], matches)
@@ -269,11 +344,31 @@ def main():
     tests = [m for m in matches if m["competition"] == "Testspiel"]
     league = [m for m in matches if m["competition"] != "Testspiel"]
 
+    # Verdacht auf echte Terminverschiebung fester Spiele (Cup aus events,
+    # Liga vollständig aus eventsround). Meldet nur, ändert den Plan nicht.
+    incoming = [m for m in map(event_to_match, events + league_events) if m]
+    incoming, _ = merge([], incoming)
+    existing_matches = (json.loads((root / "matches.json").read_text())
+                        if (root / "matches.json").exists() else [])
+    warnings = detect_reschedules(existing_matches, incoming)
+    commit_line = update_hinweis(root / "hinweis.txt", warnings, dry_run)
+    for w in warnings:
+        print(f"HINWEIS: {w['opponent']} App {w['current']} vs. Quelle {w['source']}")
+
     changed = update_file(root / "matches.json", league, dry_run)
     changed |= update_file(root / "testspiele.json", tests, dry_run)
     changed |= update_standings(root / "standings.json",
-                                compute_standings(fetch_league_events()), dry_run)
-    if not changed:
+                                compute_standings(league_events), dry_run)
+    if commit_line:
+        # Commit-Nachricht für den Workflow (die App zeigt sie auf der
+        # Datenstatus-Seite an). Über GITHUB_OUTPUT, falls in der Action.
+        out = os.environ.get("GITHUB_OUTPUT")
+        if out and not dry_run:
+            with open(out, "a", encoding="utf-8") as f:
+                f.write(f"commit_message<<HINWEIS_EOF\n{commit_line}\nHINWEIS_EOF\n")
+        print("COMMIT-NACHRICHT:", commit_line)
+
+    if not changed and not commit_line:
         print("Keine Änderungen.")
     elif dry_run:
         print("Dry-Run: Änderungen gefunden, nichts geschrieben.")

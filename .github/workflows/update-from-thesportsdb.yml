@@ -21,15 +21,20 @@ jobs:
       - name: Tests
         run: python -m unittest test_update_from_thesportsdb
       - name: Daten anreichern
+        id: enrich
         run: python update_from_thesportsdb.py
       - name: Änderungen committen
+        env:
+          HINWEIS_MSG: ${{ steps.enrich.outputs.commit_message }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add matches.json testspiele.json standings.json
+          git add -A
           if git diff --staged --quiet; then
             echo "Keine Änderungen an den Spieldaten."
           else
-            git commit -m "Spieldaten automatisch von TheSportsDB aktualisiert"
+            MSG="$HINWEIS_MSG"
+            if [ -z "$MSG" ]; then MSG="Spieldaten automatisch von TheSportsDB aktualisiert"; fi
+            git commit -m "$MSG"
             git push
           fi

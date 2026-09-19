@@ -258,3 +258,68 @@ class TestStandings(unittest.TestCase):
     def test_leere_saison_ergibt_leere_tabelle(self):
         from update_from_thesportsdb import compute_standings
         self.assertEqual(compute_standings([]), {})
+
+
+class TestReschedule(unittest.TestCase):
+    """Verdacht auf echte Terminverschiebung fester Spiele (meldet nur)."""
+
+    def fixes_aarau(self):
+        return [{
+            "id": "A0000009-0000-0000-0000-000000000009",
+            "opponent": "FC Aarau",
+            "date": "2026-09-18T20:15:00+02:00",
+            "isHome": True,
+            "competition": "Challenge League",
+        }]
+
+    def quelle(self, date_event):
+        return event_to_match(tsdb_event(
+            strLeague="Swiss Challenge League",
+            strHomeTeam="Winterthur", strAwayTeam="Aarau",
+            dateEvent=date_event, strTime="18:15:00"))
+
+    def test_grosse_abweichung_wird_gemeldet(self):
+        from update_from_thesportsdb import detect_reschedules
+        w = detect_reschedules(self.fixes_aarau(), [self.quelle("2026-09-25")])
+        self.assertEqual(len(w), 1)
+        self.assertEqual(w[0]["opponent"], "FC Aarau")
+        self.assertEqual(w[0]["current"], "2026-09-18")
+        self.assertEqual(w[0]["source"], "2026-09-25")
+
+    def test_kleine_abweichung_ist_rauschen(self):
+        from update_from_thesportsdb import detect_reschedules
+        # 2 Tage Differenz <= Toleranz -> kein Alarm (schützt vor Quellen-Rauschen
+        # wie dem 14.08/15.08-Cupfehler)
+        self.assertEqual(detect_reschedules(self.fixes_aarau(),
+                                            [self.quelle("2026-09-20")]), [])
+
+    def test_tbd_spiel_ist_keine_verschiebung(self):
+        from update_from_thesportsdb import detect_reschedules
+        existing = self.fixes_aarau()
+        existing[0]["timeTBD"] = True   # Termin noch offen -> darf befüllt werden
+        self.assertEqual(detect_reschedules(existing, [self.quelle("2026-09-25")]), [])
+
+    def test_anderes_heimrecht_ist_anderes_spiel(self):
+        from update_from_thesportsdb import detect_reschedules
+        # Rückrunde: Aarau auswärts ist eine andere Partie als Aarau daheim
+        incoming = event_to_match(tsdb_event(
+            strLeague="Swiss Challenge League",
+            strHomeTeam="Aarau", strAwayTeam="Winterthur",
+            dateEvent="2026-12-18", strTime="19:15:00"))
+        self.assertEqual(detect_reschedules(self.fixes_aarau(), [incoming]), [])
+
+    def test_merge_legt_verschobenes_spiel_nicht_doppelt_an(self):
+        merged, changes = merge(self.fixes_aarau(), [self.quelle("2026-09-25")])
+        self.assertEqual(len(merged), 1)                       # kein Geister-Duplikat
+        self.assertEqual(merged[0]["date"][:10], "2026-09-18")  # fester Termin bleibt
+        self.assertTrue(any("nicht angelegt" in c for c in changes))
+
+    def test_format_hinweis(self):
+        from update_from_thesportsdb import format_hinweis
+        self.assertEqual(format_hinweis([]), ("", ""))
+        commit, content = format_hinweis([{
+            "opponent": "FC Aarau", "competition": "Challenge League",
+            "current": "2026-09-18", "source": "2026-09-25"}])
+        self.assertIn("Terminverschiebung", commit)
+        self.assertIn("FC Aarau", commit)
+        self.assertIn("2026-09-25", content)
