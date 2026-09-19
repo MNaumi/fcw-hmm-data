@@ -81,15 +81,16 @@
     "opponent": "FC Aarau",
     "date": "2026-09-18T20:15:00+02:00",
     "isHome": true,
-    "competition": "Challenge League"
+    "competition": "Challenge League",
+    "homeScore": 2,
+    "awayScore": 1
   },
   {
     "id": "A0000010-0000-0000-0000-000000000010",
     "opponent": "Neuchâtel Xamax",
-    "date": "2026-10-10T12:00:00+02:00",
+    "date": "2026-10-09T19:30:00+02:00",
     "isHome": false,
-    "competition": "Challenge League",
-    "timeTBD": true
+    "competition": "Challenge League"
   },
   {
     "id": "A0000011-0000-0000-0000-000000000011",
