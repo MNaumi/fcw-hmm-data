@@ -208,6 +208,30 @@ def fetch_events():
     return events
 
 
+def fetch_league_events():
+    """Alle Ligaspiele der Saison rundenweise via eventsround.
+
+    Nötig für eine korrekte Tabelle: Der Gratis-Key kappt eventsseason bei 15
+    Einträgen (nur ~3 Runden), eventsround liefert pro Aufruf die volle Runde.
+    Läuft die Runden hoch, bis zwei aufeinanderfolgende leer sind (Saisonende
+    bzw. noch nicht terminierte Rückrunde) — toleriert einen transienten
+    Leer-Treffer, ohne bei einem Netzfehler die halbe Saison zu verlieren."""
+    now = datetime.now(ZURICH)
+    season = season_for(now.year, now.month)
+    events = []
+    empty_streak = 0
+    for r in range(1, 37):
+        rnd = _get(f"{API}/eventsround.php?id={LEAGUE_ID}&r={r}&s={season}").get("events") or []
+        if not rnd:
+            empty_streak += 1
+            if empty_streak >= 2:
+                break
+            continue
+        empty_streak = 0
+        events += rnd
+    return events
+
+
 def update_file(path, incoming, dry_run):
     existing = json.loads(path.read_text()) if path.exists() else []
     merged, changes = merge(existing, incoming)
@@ -247,7 +271,8 @@ def main():
 
     changed = update_file(root / "matches.json", league, dry_run)
     changed |= update_file(root / "testspiele.json", tests, dry_run)
-    changed |= update_standings(root / "standings.json", compute_standings(events), dry_run)
+    changed |= update_standings(root / "standings.json",
+                                compute_standings(fetch_league_events()), dry_run)
     if not changed:
         print("Keine Änderungen.")
     elif dry_run:

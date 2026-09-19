@@ -39,13 +39,6 @@
     "awayScore": 1
   },
   {
-    "id": "205E891A-1B9F-4CE3-8D41-F78788CF95EF",
-    "opponent": "SC Brühl SG",
-    "date": "2026-07-14T18:30:00+02:00",
-    "isHome": true,
-    "competition": "Testspiel"
-  },
-  {
     "id": "C6689A7E-F3E3-42D9-BF73-925C79A52CA7",
     "opponent": "FC Union Berlin",
     "date": "2026-07-17T19:00:00+02:00",
@@ -53,5 +46,12 @@
     "competition": "Testspiel",
     "homeScore": 1,
     "awayScore": 1
+  },
+  {
+    "id": "E085184B-D2D7-50EB-84C6-0E1895C4B50E",
+    "opponent": "FC Basel",
+    "date": "2026-10-03T16:00:00+02:00",
+    "isHome": true,
+    "competition": "Testspiel"
   }
 ]
