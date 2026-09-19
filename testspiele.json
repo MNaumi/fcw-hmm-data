@@ -4,7 +4,9 @@
     "opponent": "FC Pfäffikon ZH",
     "date": "2026-06-27T15:30:00+02:00",
     "isHome": false,
-    "competition": "Testspiel"
+    "competition": "Testspiel",
+    "homeScore": 0,
+    "awayScore": 2
   },
   {
     "id": "E96B3424-0B70-478F-87CF-C73029A0F9D3",
@@ -20,14 +22,18 @@
     "opponent": "FC Luzern",
     "date": "2026-07-04T16:00:00+02:00",
     "isHome": false,
-    "competition": "Testspiel"
+    "competition": "Testspiel",
+    "homeScore": 3,
+    "awayScore": 2
   },
   {
     "id": "FF204185-8803-484B-A27B-4F9C22527736",
     "opponent": "FC Basel",
     "date": "2026-07-11T13:00:00+02:00",
     "isHome": false,
-    "competition": "Testspiel"
+    "competition": "Testspiel",
+    "homeScore": 2,
+    "awayScore": 2
   },
   {
     "id": "11BA408A-1BCD-559A-AF0C-431720964F23",
