@@ -101,7 +101,9 @@
     "opponent": "FC Luzern",
     "date": "2026-10-17T18:00:00+02:00",
     "isHome": true,
-    "competition": "Schweizer Cup"
+    "competition": "Schweizer Cup",
+    "homeScore": 0,
+    "awayScore": 1
   },
   {
     "id": "A0000011-0000-0000-0000-000000000011",
