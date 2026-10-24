@@ -110,7 +110,9 @@
     "opponent": "Stade Nyonnais",
     "date": "2026-10-23T20:15:00+02:00",
     "isHome": true,
-    "competition": "Challenge League"
+    "competition": "Challenge League",
+    "homeScore": 4,
+    "awayScore": 0
   },
   {
     "id": "A0000012-0000-0000-0000-000000000012",
