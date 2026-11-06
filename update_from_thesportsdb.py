@@ -263,23 +263,34 @@ def season_for(year, month):
 # --- Netzwerk / Dateien -----------------------------------------------------
 
 def _get(url):
+    """Rückgabe: geparstes JSON, oder None bei Netz-/HTTP-Fehler (z.B. 429) -
+    None ist absichtlich von {} (erfolgreiche, aber leere Antwort) unterscheidbar."""
     try:
         with urllib.request.urlopen(url, timeout=20) as r:
             return json.load(r)
     except Exception as e:
         print(f"WARNUNG: {url} nicht erreichbar ({e}) – übersprungen.")
-        return {}
+        return None
 
 
 def fetch_events():
     now = datetime.now(ZURICH)
     season = season_for(now.year, now.month)
     events = []
-    events += _get(f"{API}/eventsnext.php?id={TEAM_ID}").get("events") or []
-    events += _get(f"{API}/eventslast.php?id={TEAM_ID}").get("results") or []
-    events += _get(f"{API}/eventsseason.php?id={LEAGUE_ID}&s={season}").get("events") or []
-    events += _get(f"{API}/eventsseason.php?id={CUP_LEAGUE_ID}&s={season}").get("events") or []
+    events += (_get(f"{API}/eventsnext.php?id={TEAM_ID}") or {}).get("events") or []
+    events += (_get(f"{API}/eventslast.php?id={TEAM_ID}") or {}).get("results") or []
+    events += (_get(f"{API}/eventsseason.php?id={LEAGUE_ID}&s={season}") or {}).get("events") or []
+    events += (_get(f"{API}/eventsseason.php?id={CUP_LEAGUE_ID}&s={season}") or {}).get("events") or []
     return events
+
+
+def _round_events(data):
+    """Events einer eventsround-Antwort, oder None, wenn `data` None ist (der
+    Fetch ist fehlgeschlagen, z.B. 429) - im Unterschied zu einer echten,
+    erfolgreich leeren Runde (data == {} oder data["events"] leer)."""
+    if data is None:
+        return None
+    return data.get("events") or []
 
 
 def fetch_league_events():
@@ -287,15 +298,19 @@ def fetch_league_events():
 
     Nötig für eine korrekte Tabelle: Der Gratis-Key kappt eventsseason bei 15
     Einträgen (nur ~3 Runden), eventsround liefert pro Aufruf die volle Runde.
-    Läuft die Runden hoch, bis zwei aufeinanderfolgende leer sind (Saisonende
-    bzw. noch nicht terminierte Rückrunde) — toleriert einen transienten
-    Leer-Treffer, ohne bei einem Netzfehler die halbe Saison zu verlieren."""
+    Läuft die Runden hoch, bis zwei aufeinanderfolgende ECHT leer sind
+    (Saisonende bzw. noch nicht terminierte Rückrunde) — ein Netz-/429-Fehler
+    zählt dabei NICHT als Leer-Treffer (sonst brechen zwei zufällig
+    rate-gelimitete Runden die Schleife ab und alle späteren Spieltage samt
+    Resultaten fehlen dauerhaft), sondern wird einfach übersprungen."""
     now = datetime.now(ZURICH)
     season = season_for(now.year, now.month)
     events = []
     empty_streak = 0
     for r in range(1, 37):
-        rnd = _get(f"{API}/eventsround.php?id={LEAGUE_ID}&r={r}&s={season}").get("events") or []
+        rnd = _round_events(_get(f"{API}/eventsround.php?id={LEAGUE_ID}&r={r}&s={season}"))
+        if rnd is None:
+            continue  # Fetch-Fehler: kein Rundenende, weiter zur nächsten Runde
         if not rnd:
             empty_streak += 1
             if empty_streak >= 2:
@@ -304,6 +319,22 @@ def fetch_league_events():
         empty_streak = 0
         events += rnd
     return events
+
+
+def collect_matches(events, league_events):
+    """Match-Liste für Datei-Updates UND Verschiebungs-Check aus beiden
+    TheSportsDB-Quellen: `events` (next/last/season - vom Gratis-Key gekappt:
+    eventsseason bricht nach 15 Einträgen ab, eventslast liefert inzwischen
+    oft nur noch das jeweils letzte Spiel) und `league_events` (vollständige
+    Liga-Runden via eventsround). Nur mit beiden Quellen werden Resultate
+    zuverlässig erfasst - sonst kann ein Resultat dauerhaft verpasst werden,
+    sobald ein neueres Spiel es aus eventslast verdrängt, bevor der Workflow
+    dazwischen lief."""
+    matches = [m for m in map(event_to_match, events + league_events) if m]
+    merged, _ = merge([], matches)
+    for m in merged:
+        m.pop("id", None)
+    return merged
 
 
 def update_file(path, incoming, dry_run):
@@ -335,19 +366,14 @@ def main():
     root = Path(__file__).parent
     events = fetch_events()
     league_events = fetch_league_events()   # volle Liga (eventsround) für Tabelle + Verschiebungs-Check
-    matches = [m for m in map(event_to_match, events) if m]
-    # Duplikate über die drei Endpunkte hinweg zusammenführen
-    matches, _ = merge([], matches)
-    for m in matches:
-        m.pop("id", None)
+    matches = collect_matches(events, league_events)
 
     tests = [m for m in matches if m["competition"] == "Testspiel"]
     league = [m for m in matches if m["competition"] != "Testspiel"]
 
     # Verdacht auf echte Terminverschiebung fester Spiele (Cup aus events,
     # Liga vollständig aus eventsround). Meldet nur, ändert den Plan nicht.
-    incoming = [m for m in map(event_to_match, events + league_events) if m]
-    incoming, _ = merge([], incoming)
+    incoming = matches
     existing_matches = (json.loads((root / "matches.json").read_text())
                         if (root / "matches.json").exists() else [])
     warnings = detect_reschedules(existing_matches, incoming)

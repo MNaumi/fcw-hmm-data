@@ -199,6 +199,46 @@ class TestMerge(unittest.TestCase):
         self.assertEqual([m["opponent"] for m in merged], ["FC Basel", "FC Aarau"])
 
 
+class TestRoundEvents(unittest.TestCase):
+    """fetch_league_events darf einen Netz-/429-Fehler (data is None) nicht
+    wie ein echtes Rundenende (genuine leere Runde) behandeln, sonst bricht
+    die Runden-Schleife bei zwei zufällig rate-gelimiteten Runden vorzeitig
+    ab und verpasst alle späteren Spieltage samt ihren Resultaten."""
+
+    def test_fetch_fehler_liefert_none(self):
+        from update_from_thesportsdb import _round_events
+        self.assertIsNone(_round_events(None))
+
+    def test_echte_leere_runde_liefert_leere_liste(self):
+        from update_from_thesportsdb import _round_events
+        self.assertEqual(_round_events({"events": None}), [])
+        self.assertEqual(_round_events({}), [])
+
+    def test_gefuellte_runde(self):
+        from update_from_thesportsdb import _round_events
+        self.assertEqual(_round_events({"events": [{"a": 1}]}), [{"a": 1}])
+
+
+class TestCollectMatches(unittest.TestCase):
+    """main() darf Resultate nicht nur aus events (eventsnext/eventslast/
+    eventsseason - vom Gratis-Key gekappt) ziehen, sonst bleiben Resultate
+    dauerhaft auf null stehen, sobald eventslast sie nicht mehr erfasst."""
+
+    def test_resultat_nur_aus_league_events_wird_erfasst(self):
+        from update_from_thesportsdb import collect_matches
+        events = []  # eventsnext/eventslast/eventsseason liefern dieses Spiel nicht mehr
+        league_events = [tsdb_event(
+            strLeague="Swiss Challenge League",
+            strHomeTeam="Neuchâtel Xamax", strAwayTeam="Winterthur",
+            dateEvent="2026-10-09", strTime="17:30:00",
+            strStatus="FT", intHomeScore="3", intAwayScore="0")]
+        matches = collect_matches(events, league_events)
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["homeScore"], 3)
+        self.assertEqual(matches[0]["awayScore"], 0)
+        self.assertNotIn("id", matches[0])
+
+
 class TestSaison(unittest.TestCase):
     def test_saisonwechsel_im_juli(self):
         self.assertEqual(season_for(2026, 7), "2026-2027")
