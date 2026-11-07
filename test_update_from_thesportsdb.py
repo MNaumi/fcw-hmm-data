@@ -199,6 +199,24 @@ class TestMerge(unittest.TestCase):
         self.assertEqual([m["opponent"] for m in merged], ["FC Basel", "FC Aarau"])
 
 
+class TestIsSettled(unittest.TestCase):
+    """Eine Runde darf nur dann gecacht (und nie wieder abgefragt) werden,
+    wenn WIRKLICH alle Spiele darin ein Endergebnis haben - sonst würde sich
+    ein noch offenes Spiel (verschoben, läuft gerade) nie mehr aktualisieren."""
+
+    def test_alle_spiele_beendet(self):
+        from update_from_thesportsdb import _is_settled
+        self.assertTrue(_is_settled([tsdb_event(strStatus="FT"), tsdb_event(strStatus="AET")]))
+
+    def test_ein_spiel_noch_offen(self):
+        from update_from_thesportsdb import _is_settled
+        self.assertFalse(_is_settled([tsdb_event(strStatus="FT"), tsdb_event(strStatus="NS")]))
+
+    def test_leere_runde_ist_nicht_settled(self):
+        from update_from_thesportsdb import _is_settled
+        self.assertFalse(_is_settled([]))
+
+
 class TestRoundEvents(unittest.TestCase):
     """fetch_league_events darf einen Netz-/429-Fehler (data is None) nicht
     wie ein echtes Rundenende (genuine leere Runde) behandeln, sonst bricht
@@ -217,6 +235,30 @@ class TestRoundEvents(unittest.TestCase):
     def test_gefuellte_runde(self):
         from update_from_thesportsdb import _round_events
         self.assertEqual(_round_events({"events": [{"a": 1}]}), [{"a": 1}])
+
+
+class TestStandingsTrustworthy(unittest.TestCase):
+    """Sicherheitsnetz: die Tabelle darf nie aus weniger Runden berechnet
+    werden, als laut bereits bekannten FCW-Ligaresultaten gespielt sein
+    müssten - sonst schreibt ein Lauf, der (z.B. wegen 429) nur einen
+    Bruchteil der Runden abrufen konnte, eine falsche Tabelle."""
+
+    def test_zu_wenig_runden_ist_nicht_vertrauenswuerdig(self):
+        from update_from_thesportsdb import standings_trustworthy
+        league_matches = [{"competition": "Challenge League", "homeScore": 1}] * 5
+        league_events = [{"intRound": "9"}, {"intRound": "10"}]
+        self.assertFalse(standings_trustworthy(league_matches, league_events))
+
+    def test_genug_runden_ist_vertrauenswuerdig(self):
+        from update_from_thesportsdb import standings_trustworthy
+        league_matches = [{"competition": "Challenge League", "homeScore": 1}] * 2
+        league_events = [{"intRound": str(r)} for r in range(1, 11)]
+        self.assertTrue(standings_trustworthy(league_matches, league_events))
+
+    def test_cup_spiele_zaehlen_nicht_als_erwartete_ligarunde(self):
+        from update_from_thesportsdb import standings_trustworthy
+        league_matches = [{"competition": "Schweizer Cup", "homeScore": 1}] * 5
+        self.assertTrue(standings_trustworthy(league_matches, []))
 
 
 class TestCollectMatches(unittest.TestCase):

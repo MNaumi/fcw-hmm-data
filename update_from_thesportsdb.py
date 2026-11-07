@@ -293,7 +293,14 @@ def _round_events(data):
     return data.get("events") or []
 
 
-def fetch_league_events():
+def _is_settled(events):
+    """Eine Runde ist abgeschlossen, wenn JEDES Spiel darin ein Endergebnis
+    hat - erst dann darf sie gecacht werden, sonst verpasst ein noch offenes
+    Spiel (verschoben, läuft gerade) für immer sein Resultat."""
+    return bool(events) and all(e.get("strStatus") in FINAL_STATUSES for e in events)
+
+
+def fetch_league_events(cache=None):
     """Alle Ligaspiele der Saison rundenweise via eventsround.
 
     Nötig für eine korrekte Tabelle: Der Gratis-Key kappt eventsseason bei 15
@@ -302,12 +309,26 @@ def fetch_league_events():
     (Saisonende bzw. noch nicht terminierte Rückrunde) — ein Netz-/429-Fehler
     zählt dabei NICHT als Leer-Treffer (sonst brechen zwei zufällig
     rate-gelimitete Runden die Schleife ab und alle späteren Spieltage samt
-    Resultaten fehlen dauerhaft), sondern wird einfach übersprungen."""
+    Resultaten fehlen dauerhaft), sondern wird einfach übersprungen.
+
+    `cache` (season -> Rundennummer-String -> Events, siehe rounds_cache.json)
+    hält bereits ABGESCHLOSSENE Runden fest: die werden nie wieder per HTTP
+    abgefragt, nur noch die wenigen offenen/künftigen Runden. Das senkt die
+    Zahl der eventsround-Aufrufe pro Lauf drastisch (Saisonmitte: statt ~20
+    nur noch die ein, zwei gerade laufenden Runden) und damit die 429-Quote
+    beim stark geteilten Gratis-Key. `cache` wird dabei um frisch
+    abgeschlossene Runden ergänzt (Persistieren ist Sache von main())."""
     now = datetime.now(ZURICH)
     season = season_for(now.year, now.month)
+    season_cache = cache.setdefault(season, {}) if cache is not None else {}
     events = []
     empty_streak = 0
     for r in range(1, 37):
+        key = str(r)
+        if key in season_cache:
+            events += season_cache[key]
+            empty_streak = 0
+            continue
         rnd = _round_events(_get(f"{API}/eventsround.php?id={LEAGUE_ID}&r={r}&s={season}"))
         if rnd is None:
             continue  # Fetch-Fehler: kein Rundenende, weiter zur nächsten Runde
@@ -318,7 +339,23 @@ def fetch_league_events():
             continue
         empty_streak = 0
         events += rnd
+        if _is_settled(rnd):
+            season_cache[key] = rnd
     return events
+
+
+def load_round_cache(path):
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return {}
+
+
+def save_round_cache(path, cache, dry_run):
+    if not dry_run:
+        path.write_text(json.dumps(cache, ensure_ascii=False, indent=2) + "\n")
 
 
 def collect_matches(events, league_events):
@@ -347,6 +384,20 @@ def update_file(path, incoming, dry_run):
     return bool(changes)
 
 
+def standings_trustworthy(league_matches, league_events):
+    """Nur True, wenn `league_events` mindestens so viele unterschiedliche
+    Ligarunden abdeckt, wie laut bereits bekannten FCW-Ligaresultaten
+    (`league_matches`, aus matches.json) gespielt sein müssten. Verhindert,
+    dass ein Lauf, der wegen Rate-Limiting nur einen Bruchteil der Runden
+    abrufen konnte, eine Tabelle schreibt, die auf zu wenigen Runden basiert
+    und damit falsch wäre."""
+    expected = sum(1 for m in league_matches
+                   if m.get("competition") == "Challenge League"
+                   and m.get("homeScore") is not None)
+    have = len({e.get("intRound") for e in league_events if e.get("intRound") is not None})
+    return have >= expected
+
+
 def update_standings(path, table, dry_run):
     """Schreibt die Tabelle als Snapshot; leere Tabelle lässt die Datei unangetastet."""
     if not table:
@@ -364,8 +415,12 @@ def update_standings(path, table, dry_run):
 def main():
     dry_run = "--dry-run" in sys.argv
     root = Path(__file__).parent
+    cache_path = root / "rounds_cache.json"
+    round_cache = load_round_cache(cache_path)
+    cache_before = json.dumps(round_cache, sort_keys=True)
+
     events = fetch_events()
-    league_events = fetch_league_events()   # volle Liga (eventsround) für Tabelle + Verschiebungs-Check
+    league_events = fetch_league_events(round_cache)   # volle Liga (eventsround) für Tabelle + Verschiebungs-Check
     matches = collect_matches(events, league_events)
 
     tests = [m for m in matches if m["competition"] == "Testspiel"]
@@ -383,8 +438,25 @@ def main():
 
     changed = update_file(root / "matches.json", league, dry_run)
     changed |= update_file(root / "testspiele.json", tests, dry_run)
-    changed |= update_standings(root / "standings.json",
-                                compute_standings(league_events), dry_run)
+
+    # Für den Vertrauens-Check den VOLLEN Stand nehmen (bestehende matches.json
+    # + diesmal neu Gefundenes) - nicht nur `league`, das nur die in DIESEM
+    # Lauf frisch abgerufenen Spiele enthält und bei Rate-Limiting fast leer
+    # sein kann, was den Check sonst wirkungslos macht.
+    full_league, _ = merge(existing_matches, league)
+    if standings_trustworthy(full_league, league_events):
+        changed |= update_standings(root / "standings.json",
+                                    compute_standings(league_events), dry_run)
+    else:
+        print("Tabelle: zu wenige Ligarunden abgerufen (Rate-Limit?) – "
+              "unverändert, um keine unvollständige Tabelle zu schreiben.")
+
+    if json.dumps(round_cache, sort_keys=True) != cache_before:
+        n = sum(len(v) for v in round_cache.values())
+        print(f"rounds_cache.json: {n} abgeschlossene Runde(n) gecacht.")
+        save_round_cache(cache_path, round_cache, dry_run)
+        changed = True
+
     if commit_line:
         # Commit-Nachricht für den Workflow (die App zeigt sie auf der
         # Datenstatus-Seite an). Über GITHUB_OUTPUT, falls in der Action.
