@@ -121,7 +121,9 @@
     "opponent": "FC Wil",
     "date": "2026-11-01T14:00:00+01:00",
     "isHome": false,
-    "competition": "Challenge League"
+    "competition": "Challenge League",
+    "homeScore": 0,
+    "awayScore": 3
   },
   {
     "id": "A0000013-0000-0000-0000-000000000013",
