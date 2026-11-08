@@ -128,7 +128,9 @@
     "opponent": "Étoile Carouge",
     "date": "2026-11-07T18:00:00+01:00",
     "isHome": true,
-    "competition": "Challenge League"
+    "competition": "Challenge League",
+    "homeScore": 2,
+    "awayScore": 2
   },
   {
     "id": "A0000014-0000-0000-0000-000000000014",
