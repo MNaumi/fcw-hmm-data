@@ -151,10 +151,9 @@
   {
     "id": "A0000016-0000-0000-0000-000000000016",
     "opponent": "Stade Lausanne-Ouchy",
-    "date": "2026-12-05T12:00:00+01:00",
+    "date": "2026-12-05T18:00:00+01:00",
     "isHome": false,
-    "competition": "Challenge League",
-    "timeTBD": true
+    "competition": "Challenge League"
   },
   {
     "id": "A0000017-0000-0000-0000-000000000017",
