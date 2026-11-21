@@ -139,7 +139,9 @@
     "opponent": "Yverdon Sport",
     "date": "2026-11-20T20:15:00+01:00",
     "isHome": false,
-    "competition": "Challenge League"
+    "competition": "Challenge League",
+    "homeScore": 2,
+    "awayScore": 0
   },
   {
     "id": "A0000015-0000-0000-0000-000000000015",
