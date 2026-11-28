@@ -148,7 +148,9 @@
     "opponent": "Rapperswil-Jona",
     "date": "2026-11-27T20:15:00+01:00",
     "isHome": true,
-    "competition": "Challenge League"
+    "competition": "Challenge League",
+    "homeScore": 6,
+    "awayScore": 1
   },
   {
     "id": "A0000016-0000-0000-0000-000000000016",
